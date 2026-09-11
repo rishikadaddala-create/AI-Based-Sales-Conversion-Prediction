@@ -1,0 +1,52 @@
+{
+  "model_name": "RandomForestClassifier",
+  "pipeline_steps": [
+    "feature_engineer",
+    "preprocessor",
+    "classifier"
+  ],
+  "hyperparameters": {
+    "n_estimators": 200,
+    "max_depth": null,
+    "min_samples_leaf": 5,
+    "class_weight": null,
+    "random_state": 42
+  },
+  "feature_config": {
+    "include_pagevalues": true,
+    "page_count_config": "original",
+    "duration_config": "original"
+  },
+  "training_data_ provenance": {
+    "raw_dataset_sha256": "b3055ee355f59134d851d32641183cb4a8b45def7124d2f50442a042f358e0d9",
+    "train_rows": 9764,
+    "test_rows": 2441,
+    "random_state": 42
+  },
+  "cv_performance": {
+    "mean_cv_roc_auc": 0.926655,
+    "std_cv_roc_auc": 0.005868,
+    "mean_cv_pr_auc": 0.74742,
+    "mean_cv_brier": 0.073888,
+    "mean_cv_precision": 0.807675,
+    "mean_cv_recall": 0.494754
+  },
+  "holdout_test_performance": {
+    "test_roc_auc": 0.9292558020082947,
+    "test_pr_auc": 0.7457512216648524,
+    "test_brier": 0.0722334380322104,
+    "test_accuracy": 0.9033183121671446,
+    "test_precision": 0.7644927536231884,
+    "test_recall": 0.5523560209424084,
+    "test_f1": 0.6413373860182371,
+    "confusion_matrix": {
+      "tn": 1994,
+      "fp": 65,
+      "fn": 171,
+      "tp": 211
+    },
+    "positive_count": 382,
+    "negative_count": 2059,
+    "conversion_rate": 0.15649324047521507
+  }
+}
