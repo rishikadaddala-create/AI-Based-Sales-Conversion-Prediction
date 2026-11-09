@@ -124,6 +124,8 @@ pipeline = get_model()
 
 
 # Sidebar Navigation & Model Info
+# NOTE: The image below is loaded from an external URL and requires an internet connection to display.
+# The app remains fully functional if the image fails to load.
 st.sidebar.image("https://img.icons8.com/color/96/combo-chart.png", width=64)
 st.sidebar.title("Lead Scoring System")
 st.sidebar.markdown("**Locked Production Model**: Random Forest (Config A)")
@@ -173,6 +175,10 @@ with tab1:
             exit_rate = st.slider("Exit Rate", min_value=0.0, max_value=0.20, value=0.01, step=0.005, help="Percentage of total page views that ended in an exit")
             page_values = st.number_input("PageValues", min_value=0.0, max_value=400.0, value=25.0, step=1.0, help="Google Analytics score measuring value of pages visited before purchase")
             special_day = st.select_slider("Special Day Proximity", options=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0], value=0.0, help="Closeness of visit to a major commercial date (e.g. Mother's Day)")
+            # Month options reflect months present in the UCI training dataset.
+            # 'Jan' and 'Apr' are absent from the training data; 'Jan' is included here
+            # for user convenience — the OHE pipeline handles unknown values gracefully
+            # (handle_unknown='ignore'), treating unknown months as all-zero indicator columns.
             month = st.selectbox("Month of Visit", options=['Jan', 'Feb', 'Mar', 'May', 'June', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], index=9)
 
         with col3:

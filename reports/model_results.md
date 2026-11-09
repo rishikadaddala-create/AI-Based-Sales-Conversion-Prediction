@@ -39,7 +39,7 @@ The table below summarizes the 5-fold Stratified Cross-Validation metrics comput
 | **SMOTE Resampling** | **0.9274 ± 0.0055** | 0.7213 ± 0.0266 | 0.0745 ± 0.0028 | 0.6882 | 0.6573 |
 
 ### Selection Hierarchy Rationale:
-1. **Primary Metric (ROC-AUC)**: `balanced` (0.9279) and `none` (0.9267) are in an effective **near-tie** ($\Delta = +0.0012$, paired $t$-test $p = 0.4602 > 0.05$).
+1. **Primary Metric (ROC-AUC)**: `balanced` (0.9279) and `none` (0.9267) are in an effective **near-tie** ($\Delta = +0.0012$, paired $t$-test $p = 0.4602 > 0.05$). *(p-value is **REPORTED** from `scratch/near_tie_analysis.py` output; fold-level values were not persisted and cannot be independently re-verified.)*
 2. **Secondary Metrics**: `class_weight=None` achieves superior Precision-Recall AUC (**0.7474 vs 0.7294**), and `class_weight=None` achieves a lower Brier score in the evaluated CV experiments (**0.0739 vs 0.0874**).
 3. **Selection Rule**: Following our predefined hierarchy ("prefer the simpler and/or better-calibrated model in near-ties"), `class_weight=None` was selected.
 
@@ -80,6 +80,8 @@ $$\begin{pmatrix} \text{TN} = 1994 & \text{FP} = 65 \\ \text{FN} = 171 & \text{T
 
 ## 4. Generalization Gap & Performance Comparison
 
+> **Source Labels**: CV results are **VERIFIED** from `reports/cv_experiment_results.csv` (row 11, 5-fold Stratified CV on `X_train`). Holdout test results are **REPORTED** from `models/model_metadata.json` and the execution log of `scratch/execute_phase6.py`. Fold-level holdout outputs were not persisted as individual files.
+
 - **ROC-AUC Generalization**: The model exhibited exceptional generalization stability. Holdout test ROC-AUC (**0.9293**) closely matches training cross-validation (**0.9267 ± 0.0059**), sitting within 0.44 standard deviations of the CV mean ($\Delta = +0.0026$).
 - **PR-AUC Generalization**: PR-AUC on holdout test data (**0.7458**) is virtually identical to cross-validation (**0.7474 ± 0.0199**).
 - **Brier Calibration Loss**: Brier score on holdout test data (**0.0722**) is slightly lower (better) than training CV (**0.0739 ± 0.0021**), demonstrating that probability calibration generalizes cleanly without over-confidence.
@@ -97,13 +99,15 @@ $$\begin{pmatrix} \text{TN} = 1994 & \text{FP} = 65 \\ \text{FN} = 171 & \text{T
 ## 6. PageValues Sensitivity Reporting
 
 As established in training cross-validation:
-- **With `PageValues` (Model Set A)**: ROC-AUC = **0.9267**
-- **Without `PageValues` (Model Set B)**: ROC-AUC = **0.7762**
+- **With `PageValues` (Model Set A — `include_pagevalues=True`, `class_weight=None`, `max_depth=None`, `min_samples_leaf=5`)**: ROC-AUC = **0.9267** (`cv_experiment_results.csv` row 11, **VERIFIED**)
+- **Without `PageValues` (Model Set B — `include_pagevalues=False`, `class_weight=None`, `max_depth=None`, `min_samples_leaf=5`)**: ROC-AUC = **0.7757** (`cv_experiment_results.csv` row 90, **VERIFIED**)
+
+> **Note on PageValues availability**: `PageValues` is a Google Analytics metric computed from pages visited *before* a conversion event. It becomes available during an active browsing session and is logged at session-end. Its availability at real-time inference depends on the operational deployment context. Under this project's stated session-level prediction assumption, `PageValues` is treated as an eligible input feature; however, its precise availability relative to the prediction decision should be confirmed in any live deployment.
 
 **Methodological Statement**:  
-*"The sensitivity experiment indicates that PageValues contributes substantial predictive signal, while the model without PageValues retains meaningful predictive performance."*
+*"The sensitivity experiment indicates that PageValues contributes substantial predictive signal (ROC-AUC drops from 0.9267 to 0.7757 when excluded). The comparison uses matched hyperparameters (`max_depth=None`, `min_samples_leaf=5`, `class_weight=None`) and identical CV methodology, isolating the PageValues feature as the sole varying factor."*
 
-`PageValues` represents real-time session interaction data tracked prior to checkout. It remains documented as a core operational feature required during real-time inference.
+`PageValues` is documented as a core operational feature required during real-time inference.
 
 ---
 

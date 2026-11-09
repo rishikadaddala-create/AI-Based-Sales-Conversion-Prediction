@@ -28,6 +28,10 @@ Thumbs.db
 # Streamlit local state
 .streamlit/
 
-# Temporary scratch directory
-scratch/
+# Pytest cache
+.pytest_cache/
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
 

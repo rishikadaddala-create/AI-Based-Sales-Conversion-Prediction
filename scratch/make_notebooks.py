@@ -1,0 +1,240 @@
+import json
+import os
+
+nb_dir = r'c:\Users\rishi\OneDrive\Desktop\AI-Based Sales Conversion Probability Prediction\notebooks'
+
+# 01_data_understanding.ipynb
+nb_data = {
+ 'cells': [
+  {
+   'cell_type': 'markdown',
+   'metadata': {},
+   'source': [
+    '# Phase 3A: Data Understanding, Real Schema Inspection & Leakage Audit\n',
+    '\n',
+    '**Project Title**: AI-Based Sales Conversion Probability Prediction  \n',
+    '**Dataset**: UCI Online Shoppers Purchasing Intention Dataset (Sakar et al., 2018)  \n',
+    '**Source**: `data/raw/online_shoppers_intention.csv`  \n',
+    '\n',
+    '---  \n',
+    '## System & Prediction Definitions\n',
+    '- **Prediction Unit**: An individual online e-commerce browsing session.\n',
+    '- **Prediction Target**: `Revenue` (Boolean: `True` if session ends in a purchase transaction, `False` otherwise).\n',
+    '- **Prediction Timing**: Real-time during session navigation prior to final checkout submission.\n',
+    '- **Available at Prediction Time**: Session page counts, browsing durations, Exit/Bounce rates, historical page value lookup metrics (`PageValues`), and visitor context (Month, VisitorType, Weekend, OS, Browser, Region, TrafficType).\n',
+    '- **Unavailable / Target Leakage**: Post-transaction payment flags, deal closure notes, or post-purchase timestamps (None present in this dataset schema).'
+   ]
+  },
+  {
+   'cell_type': 'code',
+   'execution_count': None,
+   'metadata': {},
+   'outputs': [],
+   'source': [
+    'import pandas as pd\n',
+    'import numpy as np\n',
+    'import matplotlib.pyplot as plt\n',
+    'import seaborn as sns\n',
+    '\n',
+    'pd.set_option("display.max_columns", None)\n',
+    'sns.set_theme(style="whitegrid")\n',
+    '\n',
+    'df = pd.read_csv("../data/raw/online_shoppers_intention.csv")\n',
+    'print(f"Dataset Shape: {df.shape[0]} rows, {df.shape[1]} columns")\n',
+    'df.head()'
+   ]
+  },
+  {
+   'cell_type': 'markdown',
+   'metadata': {},
+   'source': [
+    '## 1. Schema & Data Types Inspection'
+   ]
+  },
+  {
+   'cell_type': 'code',
+   'execution_count': None,
+   'metadata': {},
+   'outputs': [],
+   'source': [
+    'schema_df = pd.DataFrame({\n',
+    '    "Data_Type": df.dtypes,\n',
+    '    "Missing_Count": df.isnull().sum(),\n',
+    '    "Missing_Pct": (df.isnull().sum() / len(df)) * 100,\n',
+    '    "Unique_Values": df.nunique()\n',
+    '})\n',
+    'print("=== SCHEMA AUDIT ===")\n',
+    'display(schema_df)\n',
+    'print(f"Total Duplicate Rows: {df.duplicated().sum()} ({(df.duplicated().sum()/len(df))*100:.2f}%)")'
+   ]
+  },
+  {
+   'cell_type': 'markdown',
+   'metadata': {},
+   'source': [
+    '## 2. Target Class Distribution (`Revenue`)'
+   ]
+  },
+  {
+   'cell_type': 'code',
+   'execution_count': None,
+   'metadata': {},
+   'outputs': [],
+   'source': [
+    'target_counts = df["Revenue"].value_counts(dropna=False)\n',
+    'target_pcts = df["Revenue"].value_counts(normalize=True, dropna=False) * 100\n',
+    'target_summary = pd.DataFrame({"Count": target_counts, "Percentage": target_pcts})\n',
+    'print("=== TARGET VARIABLE DISTRIBUTION ===")\n',
+    'display(target_summary)\n',
+    '\n',
+    'plt.figure(figsize=(6, 4))\n',
+    'ax = sns.countplot(data=df, x="Revenue", palette="Set2")\n',
+    'plt.title("Target Class Distribution (Revenue)", fontweight="bold")\n',
+    'plt.show()'
+   ]
+  },
+  {
+   'cell_type': 'markdown',
+   'metadata': {},
+   'source': [
+    '## 3. Numerical & Categorical Summaries'
+   ]
+  },
+  {
+   'cell_type': 'code',
+   'execution_count': None,
+   'metadata': {},
+   'outputs': [],
+   'source': [
+    'num_cols = df.select_dtypes(include=[np.number]).columns\n',
+    'print("=== NUMERICAL DESCRIPTIVE STATISTICS ===")\n',
+    'display(df[num_cols].describe().T)\n',
+    '\n',
+    'cat_cols = df.select_dtypes(include=["object", "bool"]).columns\n',
+    'print("\\n=== CATEGORICAL FREQUENCY DISTRIBUTIONS ===")\n',
+    'for c in cat_cols:\n',
+    '    if c != "Revenue":\n',
+    '        print(f"\\n--- {c} ---")\n',
+    '        display(df[c].value_counts(dropna=False))'
+   ]
+  },
+  {
+   'cell_type': 'markdown',
+   'metadata': {},
+   'source': [
+    '## 4. Leakage Audit & Preliminary Feature Eligibility Table\n',
+    '\n',
+    'Every feature in `online_shoppers_intention.csv` has been evaluated against prediction timing and business availability:\n',
+    '\n',
+    '| Feature | Meaning | Data Type | Available at Prediction Time? | Leakage Risk | Decision | Reason |\n',
+    '| :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n',
+    '| `Administrative` | Admin pages visited | int64 | Yes | Low | Safe | Session navigation count |\n',
+    '| `Administrative_Duration` | Admin page time (s) | float64 | Yes | Low | Safe | Session duration metric |\n',
+    '| `Informational` | Info pages visited | int64 | Yes | Low | Safe | Session navigation count |\n',
+    '| `Informational_Duration` | Info page time (s) | float64 | Yes | Low | Safe | Session duration metric |\n',
+    '| `ProductRelated` | Product pages visited | int64 | Yes | Low | Safe | Core browsing engagement |\n',
+    '| `ProductRelated_Duration` | Product page time (s) | float64 | Yes | Low | Safe | Core browsing duration |\n',
+    '| `BounceRates` | Avg page bounce rate | float64 | Yes | Low | Safe | Historical web tracking metric |\n',
+    '| `ExitRates` | Avg page exit rate | float64 | Yes | Low | Safe | Historical web tracking metric |\n',
+    '| `PageValues` | Avg Google Analytics page value | float64 | Yes | Medium (Risky) | **Risky Candidate (Monitor)** | Historical page lookup value. Available at prediction time, but highly predictive (mean=27.26 for True vs 1.98 for False). |\n',
+    '| `SpecialDay` | Closeness to holiday | float64 | Yes | Low | Safe | Calendar attribute |\n',
+    '| `Month` | Visit month | object | Yes | Low | Safe | Seasonality attribute |\n',
+    '| `OperatingSystems` | OS ID | int64 | Yes | Low | Safe | Tech environment attribute |\n',
+    '| `Browser` | Browser ID | int64 | Yes | Low | Safe | Tech environment attribute |\n',
+    '| `Region` | Geographic region ID | int64 | Yes | Low | Safe | Geolocation attribute |\n',
+    '| `TrafficType` | Traffic source type ID | int64 | Yes | Low | Safe | Acquisition channel attribute |\n',
+    '| `VisitorType` | Visitor type | object | Yes | Low | Safe | User history attribute |\n',
+    '| `Weekend` | Weekend boolean | bool | Yes | Low | Safe | Calendar attribute |'
+   ]
+  }
+ ],
+ 'metadata': {
+  'language_info': {'name': 'python'}
+ },
+ 'nbformat': 4,
+ 'nbformat_minor': 2
+}
+
+with open(os.path.join(nb_dir, '01_data_understanding.ipynb'), 'w') as f:
+    json.dump(nb_data, f, indent=2)
+
+# 02_eda.ipynb
+nb_eda = {
+ 'cells': [
+  {
+   'cell_type': 'markdown',
+   'metadata': {},
+   'source': [
+    '# Phase 3B: Exploratory Data Analysis & Bivariate Relationships\n',
+    '\n',
+    '**Project Title**: AI-Based Sales Conversion Probability Prediction  \n',
+    '**Dataset**: UCI Online Shoppers Purchasing Intention Dataset  \n',
+    '**Source**: `data/raw/online_shoppers_intention.csv`  \n'
+   ]
+  },
+  {
+   'cell_type': 'code',
+   'execution_count': None,
+   'metadata': {},
+   'outputs': [],
+   'source': [
+    'import pandas as pd\n',
+    'import numpy as np\n',
+    'import matplotlib.pyplot as plt\n',
+    'import seaborn as sns\n',
+    '\n',
+    'sns.set_theme(style="whitegrid")\n',
+    'df = pd.read_csv("../data/raw/online_shoppers_intention.csv")\n',
+    'df.head()'
+   ]
+  },
+  {
+   'cell_type': 'markdown',
+   'metadata': {},
+   'source': [
+    '## 1. Conversion Rate Analysis Across Categorical Features'
+   ]
+  },
+  {
+   'cell_type': 'code',
+   'execution_count': None,
+   'metadata': {},
+   'outputs': [],
+   'source': [
+    'for col in ["Month", "VisitorType", "Weekend", "OperatingSystems", "Region", "TrafficType"]:\n',
+    '    print(f"\\n=== Conversion Rate by {col} ===")\n',
+    '    res = df.groupby(col)["Revenue"].agg(["count", "mean"]).rename(columns={"mean": "Conversion_Rate"})\n',
+    '    res["Conversion_Rate_Pct"] = res["Conversion_Rate"] * 100\n',
+    '    display(res)'
+   ]
+  },
+  {
+   'cell_type': 'markdown',
+   'metadata': {},
+   'source': [
+    '## 2. Bivariate Numerical Feature Comparisons'
+   ]
+  },
+  {
+   'cell_type': 'code',
+   'execution_count': None,
+   'metadata': {},
+   'outputs': [],
+   'source': [
+    'num_cols = df.select_dtypes(include=[np.number]).columns\n',
+    'print("=== MEAN NUMERICAL VALUES BY REVENUE CLASS ===")\n',
+    'display(df.groupby("Revenue")[num_cols].mean().T)'
+   ]
+  }
+ ],
+ 'metadata': {
+  'language_info': {'name': 'python'}
+ },
+ 'nbformat': 4,
+ 'nbformat_minor': 2
+}
+
+with open(os.path.join(nb_dir, '02_eda.ipynb'), 'w') as f:
+    json.dump(nb_eda, f, indent=2)
+
+print('Notebooks 01_data_understanding.ipynb and 02_eda.ipynb created successfully!')
