@@ -11,10 +11,12 @@ This interactive web dashboard presents:
 
 import os
 import sys
+import matplotlib
+matplotlib.use("Agg")  # Non-interactive backend required on Streamlit Cloud (Linux/headless)
+import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import streamlit as st
-import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Ensure project root is in sys.path
