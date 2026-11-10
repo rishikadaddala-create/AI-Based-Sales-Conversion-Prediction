@@ -22,6 +22,22 @@ import seaborn as sns
 # Ensure project root is in sys.path
 sys.path.insert(0, ".")
 
+# ---------------------------------------------------------------------------
+# Scikit-learn pickle compatibility shim
+# The saved model references _RemainderColsList from sklearn.compose internals.
+# If the deployed sklearn version does not expose this class (version mismatch),
+# we inject a compatible stub so joblib can unpickle the ColumnTransformer safely.
+# This does NOT change model weights, hyperparameters, or predictions.
+# ---------------------------------------------------------------------------
+try:
+    from sklearn.compose._column_transformer import _RemainderColsList  # noqa: F401
+except (ImportError, AttributeError):
+    import sklearn.compose._column_transformer as _ct
+    class _RemainderColsList(list):
+        """Compatibility stub for sklearn versions that renamed/removed this class."""
+        pass
+    _ct._RemainderColsList = _RemainderColsList
+
 from src.predict import (
     load_production_model,
     predict_single_lead,
